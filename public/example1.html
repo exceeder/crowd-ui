@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>UI Crowd</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="bootstrap.min.css"/>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<header class="navbar navbar-expand navbar-dark" style="background: #333;">
+  <a class="navbar-brand" href="/">Reactive webapp</a>
+  <ul class="navbar-nav mr-auto">
+    <li class="nav-item"><a class="nav-link" href="intro.html">Intro</a></li>
+    <li class="nav-item active"><a class="nav-link" href="example1.html">Example 1</a></li>
+    <li class="nav-item"><a class="nav-link" href="example2.html">Example 2</a></li>
+  </ul>
+</header>
+<div class="container-fluid" id="app" style="max-width:60em; margin:1em auto">
+
+  <h3>How to publish a component to the UI</h3>
+  <p>Code below is an example how to create web UI component only by sending message to a topic.
+    Essentially, it publishes the code of a vue.js component in 'module.js' to the "web.ui" topic. If there is a
+    server (subscriber) listening to it, this component will be integrated into the web page.
+  </p>
+  <h5>module.js</h5>
+  <pre><textarea style="width:100%; height:20em; font-size: 0.9em">
+export default {
+    template: `
+    <div style="margin: 1em; padding:1em;">
+     <h3>Dynamic Component</h3>
+     <p>{{ message }}</p>
+    </div>
+  `,
+    data() {
+        return {
+            message: 'Oh hai from the component'
+        }
+    }
+}</textarea></pre>
+
+  And this node application would publish it to show on the UI.
+  <h5>main.js</h5>
+  <pre><textarea style="width:100%; height:22em; font-size: 0.9em">
+const fs = require('fs');
+const redis = require('redis');
+const redisClient = redis.createClient(6379, '127.0.0.1');
+
+let ui = {
+    component: "othere",
+    files: []
+};
+
+ui.files.push({
+        name: 'module.js',
+        content: fs.readFileSync("module.js","utf8")
+    });
+redisClient.publish("main.ui",JSON.stringify(ui));
+redisClient.quit();
+  </textarea></pre>
+
+  Run it with <code>node main.js</code>
+</div>
+
+</body>
+</html>

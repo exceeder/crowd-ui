@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>UI Crowd</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="bootstrap.min.css"/>
+  <link rel="stylesheet" href="app.css"/>
+  <script src="vue.js"></script>
+</head>
+<body>
+<header class="navbar navbar-expand navbar-dark" style="background: #333;">
+  <a class="navbar-brand" href="/">Reactive webapp</a>
+  <ul class="navbar-nav mr-auto">
+    <li class="nav-item"><a class="nav-link" href="intro.html">Intro</a></li>
+    <li class="nav-item"><a class="nav-link" href="example1.html">Example 1</a></li>
+    <li class="nav-item"><a class="nav-link" href="example2.html">Example 2</a></li>
+  </ul>
+</header>
+<div class="container-fluid" id="app" :key="revision">
+  <div class="cards">
+    <template v-for="slot in slots">
+      <div>
+        <span>{{slot}} {{revision}}</span>
+        <component v-bind:is="slot"></component>
+      </div>
+    </template>
+  </div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

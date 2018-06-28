@@ -1,0 +1,30 @@
+{
+  "name": "crowd-ui",
+  "version": "1.0.0",
+  "description": "Webapp for collaborative development of reactive UI",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/exceeder/crowd-ui.git"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "test": "node tests/test.js"
+  },
+  "keywords": [
+    "micro",
+    "QA",
+    "Gateway"
+  ],
+  "author": "Alex Pakka",
+  "license": "Apache 2.0",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "properties": "^1.2.1",
+    "redis": "^2.8.0"
+  },
+  "engines": {
+    "node": ">=6.0.0"
+  }
+}
