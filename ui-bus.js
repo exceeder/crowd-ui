@@ -4,7 +4,7 @@ const connections = [];
 
 // server-sent events support
 //Usage in the app:
-//  use bus.emit('publish', tabId, model); to send to a particular tab
+//  use `bus.emit('component', tabId, vueComponent);` or `bus.emit('model', tabId, model);` to send to a particular tab
 //  send empty string as id to broadcast to all, e.g: bus.emit('publish', '', 'going up');
 
 class UiBus {
@@ -38,14 +38,21 @@ class UiBus {
         let tabId = req.query['tabId'];
 
         //Node's internal event bus listener that pushes events to all web UIs
-        let listener = (id, data) => {
+        let uiListener = (id, data) => {
             if (id === '' || id === tabId) {
-                res.write('data: ' + JSON.stringify({type: "publish", value: data}) + '\n\n');
+                this.sendToUi("component", res, data);
             }
         };
-        UiBus.bus().on('publish', listener);
+        UiBus.bus().on('component', uiListener);
 
-        connections.push({req:req, listener:listener});
+        let dataListener = (id, data) => {
+            if (id === '' || id === tabId) {
+                this.sendToUi("model", res, data);
+            }
+        };
+        UiBus.bus().on('model', dataListener);
+
+        connections.push({req:req, listener:dataListener});
 
         req.on('close', function () {
             for (let i = 0; i < connections.length; i++) {
@@ -57,13 +64,19 @@ class UiBus {
                 }
             }
         });
+
+        //push initial data state on connect
         if (this.onConnect) {
             let model = this.onConnect(tabId, req);
             if (model) {
-                res.write('data: ' + JSON.stringify({type: "model", value: model}) + '\n\n');
+                this.sendToUi("model", res, model);
             }
         }
 
+    }
+
+    sendToUi(type, res, data) {
+        res.write('data: ' + JSON.stringify({type: type, value: data}) + '\n\n');
     }
 }
 

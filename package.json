@@ -2,13 +2,13 @@
   "name": "crowd-ui",
   "version": "1.0.0",
   "description": "Webapp for collaborative development of reactive UI",
-  "main": "app.js",
+  "main": "main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/exceeder/crowd-ui.git"
   },
   "scripts": {
-    "start": "node app.js",
+    "start": "node main.js",
     "test": "node tests/test.js"
   },
   "keywords": [

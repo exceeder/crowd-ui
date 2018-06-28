@@ -1,6 +1,5 @@
-
 // give this tab unique id to be able to target single browser tab with messages
-const tabId = Math.random().toString(36).substring(2,5);
+const tabId = Math.random().toString(36).substr(2,7);
 
 // initialize UI slots to be lazily accessible
 const slotNames = ["escal", "othere", "creas", "varelse", "trusion", "intar", "clevel", "rement", "eping"];
@@ -16,6 +15,9 @@ new Vue({
     data: {
       authors: [],
       slots: [],
+      model: {
+          data: ''
+      },
       revision: 1
     },
     components: componentLazyImport,
@@ -28,14 +30,23 @@ new Vue({
             es.addEventListener('message', event => {
                 let data = JSON.parse(event.data);
                 switch (data.type) {
-                    case 'publish': this.updateComponent(data.value); break;
+                    case 'component': this.updateComponent(data.value); break;
                     case 'model': this.updateModel(data.value); break;
                 }
                 console.log(JSON.stringify(data));
             }, false);
         },
-        updateModel(components) {
-            this.slots = components;
+        updateModel(event) {
+            if (event.component) {
+                //find a child for component and update its data
+                this.$children.forEach(v => {
+                   if (v.$options._componentTag === event.component) {
+                       v[event.data.path] = event.data.value;
+                   }
+                });
+            } else {
+                this.slots = event;
+            }
         },
         updateComponent(name) {
             if (!this.slots.includes(name)) {
