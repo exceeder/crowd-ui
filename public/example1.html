@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="bootstrap.min.css"/>
   <link rel="stylesheet" href="app.css"/>
+  <style>
+    textarea { font-family: monospace; font-size:1.2em; width:100%; padding-left: 1em; color: #005cbf; }
+    pre { color: #e83e8c; }
+  </style>
 </head>
 <body>
 <header class="navbar navbar-expand navbar-dark" style="background: #333;">
@@ -17,13 +21,37 @@
 </header>
 <div class="container-fluid" id="app" style="max-width:60em; margin:1em auto">
 
-  <h3>How to publish a component to the UI</h3>
-  <p>Code below is an example how to create web UI component only by sending message to a topic.
-    Essentially, it publishes the code of a vue.js component in 'module.js' to the "web.ui" topic. If there is a
+  <h3>How to publish HTML to the UI</h3>
+  <p>Code below is a "Hello World" example how to push html to a combined UI reactively only by sending a message to a topic.</p>
+  <p>Before you create this file, create a new directory, and run the following there:
+    <pre>
+  npm init
+  npm install redis
+  touch push.js
+</pre>
+  edit push.js as below and you can then update combined UI by running <code>node push.js</code>
+  </p>
+  <pre><textarea style="height:18em;">
+const fs = require('fs');
+const redis = require('redis');
+const redisClient = redis.createClient(6379, 'localhost'); //replace with real hostname
+
+let ui = {
+    component: "othere",
+    html: '<h1>Hello</h1><p>World!</p>'
+};
+
+redisClient.publish("main.ui",JSON.stringify(ui));
+redisClient.quit();
+  </textarea></pre>
+
+  <h3>How to publish a full component to the UI</h3>
+  <p>Code below is an example how to create web UI component the same way, by sending a message to a topic "main.ui".
+    Essentially, it publishes the code of a vue.js component in 'module.js' to the topic. If there is a
     server (subscriber) listening to it, this component will be integrated into the web page.
   </p>
   <h5>module.js</h5>
-  <pre><textarea style="width:100%; height:20em; font-size: 0.9em">
+  <pre><textarea style="height:20em;">
 export default {
     template: `
     <div style="margin: 1em; padding:1em;">
@@ -39,26 +67,27 @@ export default {
 }</textarea></pre>
 
   And this node application would publish it to show on the UI.
-  <h5>main.js</h5>
-  <pre><textarea style="width:100%; height:22em; font-size: 0.9em">
+  <h5>push.js</h5>
+  <pre><textarea style="height:25em;">
 const fs = require('fs');
 const redis = require('redis');
-const redisClient = redis.createClient(6379, '127.0.0.1');
+const redisClient = redis.createClient(6379, 'localhost'); //replace with real hostname
 
 let ui = {
     component: "othere",
-    files: []
+    files: [
+      {
+          name: 'module.js',
+          content: fs.readFileSync("module.js","utf8")
+      }
+    ]
 };
 
-ui.files.push({
-        name: 'module.js',
-        content: fs.readFileSync("module.js","utf8")
-    });
 redisClient.publish("main.ui",JSON.stringify(ui));
 redisClient.quit();
   </textarea></pre>
 
-  Run it with <code>node main.js</code>
+  Run it with <code>node push.js</code>
 </div>
 
 </body>

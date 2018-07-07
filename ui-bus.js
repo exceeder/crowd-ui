@@ -9,10 +9,11 @@ const connections = [];
 
 class UiBus {
     //e.g.   ('/events', app) where app is an express app
-    constructor(path, app, onConnect) {
-        this.app = app;
+    constructor(wsServer, onConnect) {
+        this.wsServer = wsServer;
         this.onConnect = onConnect;
-        app.get(path, (req, res) => this.onEventsConnect(req, res));
+        this.wsServer.on('connection', (ws, req) => this.onBrowserConnected(ws, req));
+        //app.get(path, (req, res) => this.onEventsConnect(req, res));
     }
 
     static bus() {
@@ -23,60 +24,65 @@ class UiBus {
         bus.emit.apply(bus, arguments);
     }
 
-    onEventsConnect(req, res) {
-        // Set highest timeout, 100mil is ~27 hours here
-        req.socket.setTimeout(100000000);
-        // Write headers needed for sse
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
-        res.write('\n');
-
+    onBrowserConnected(ws, req) {
         //tabId is there to differentiate browser tabs / users / different browsers
-        let tabId = req.query['tabId'];
+        let tabId = '';
+        if (req.url.indexOf('tabId=') > 0) tabId = req.url.substring(req.url.indexOf('tabId=')+6);
+        const remoteAddr = req.connection.remoteAddress;
+        console.log('websocket init [%s] for tab [%s]', remoteAddr, tabId);
+        ws.isAlive = true;
 
-        //Node's internal event bus listener that pushes events to all web UIs
-        let uiListener = (id, data) => {
-            if (id === '' || id === tabId) {
-                this.sendToUi("component", res, data);
-            }
+        //register connection object per browser tab per user, binding server side events to web sockets
+        let conn = {
+            tabId:tabId,
+            ws:ws,
+            uiListener: (id, data) => this.pushToUi("component", ws, id, data, tabId),
+            dataListener: (id, data) => this.pushToUi("model", ws, id, data, tabId)
         };
-        UiBus.bus().on('component', uiListener);
+        connections.push(conn);
+        UiBus.bus().on('component', conn.uiListener);
+        UiBus.bus().on('model', conn.dataListener);
 
-        let dataListener = (id, data) => {
-            if (id === '' || id === tabId) {
-                this.sendToUi("model", res, data);
+        //on initial connection, push all components to the UI
+        if (this.onConnect) {
+            let model = this.onConnect(tabId, req);
+            if (model) {
+                this.pushToUi("model", ws, '', model, tabId);
             }
-        };
-        UiBus.bus().on('model', dataListener);
+        }
 
-        connections.push({req:req, listener:dataListener});
-
-        req.on('close', function () {
+        ws.on('open', () => {
+            console.log('ws open for '+tabId);
+        });
+        ws.on('message', (data) => {
+            console.log("==> WS: " + data);
+        });
+        ws.on('error', (err) => {
+            console.log("!==> WS: " + err);
+        });
+        ws.on('close', (e) => {
+            ws.isAlive = false;
+            console.log('ws close [%s] - %s', remoteAddr, e);
             for (let i = 0; i < connections.length; i++) {
                 let c = connections[i];
-                if (c.req === req) {
-                    UiBus.bus().removeListener('progress',c.listener);
+                if (ws === c.ws) {
+                    UiBus.bus().removeListener('component', c.uiListener);
+                    UiBus.bus().removeListener('model', c.dataListener);
                     connections.splice(i, 1);
                     break;
                 }
             }
         });
-
-        //push initial data state on connect
-        if (this.onConnect) {
-            let model = this.onConnect(tabId, req);
-            if (model) {
-                this.sendToUi("model", res, model);
-            }
-        }
-
     }
 
-    sendToUi(type, res, data) {
-        res.write('data: ' + JSON.stringify({type: type, value: data}) + '\n\n');
+    pushToUi(type, ws, id, data, tabId) {
+        try {
+            if (id === '' || id === tabId) {
+                ws.send(JSON.stringify({type: type, value: data}))
+            }
+        } catch (e) {
+            console.log("Cannot push to UI:",e);
+        }
     }
 }
 

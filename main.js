@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
+const WebSocket = require('ws');
 const properties = require ("properties");
 const redis = require('redis');
 const UiBus = require('./ui-bus');
@@ -30,14 +31,29 @@ class Main {
             //todo harden this code for invalid messages
             //console.log("Message '" + message + "' on channel '" + channel + "' arrived!");
             let c = JSON.parse(message);
-            //c be like { component: "[slot name]",  files: [ {name: "module.js", content: "[file content]"}, ...] }
+            //c be like
+            // { component: "[slot name]",  html: "html to display" } or
+            // { component: "[slot name]",  files: [ {name: "module.js", content: "[file content]"}, ...] } or
             if (!this.ui[c.component]) {
+                c.version = 0;
                 this.components.push(c.component);
+                this.ui[c.component] = c;
             }
-            this.ui[c.component] = c.files;
+            if (c.html) {
+                c.files = [ {name: "module.js",
+                    content:
+                        `export default { 
+                             template: '<span v-html="rawHtml"></span>',
+                             data() { return { rawHtml: ${JSON.stringify(c.html)} } }
+                        }`
+                }]
+            }
+            this.ui[c.component].version++;
+            this.ui[c.component].files = c.files;
+
             //notify UI we got new component
             //todo only send if newer version
-            UiBus.bus().emit('component', '', c.component);
+            UiBus.bus().emit('component', '', {version:this.ui[c.component].version, component:c.component} );
         });
     }
 
@@ -66,16 +82,18 @@ class Main {
     }
 
     initExpress() {
-        //register app
+        //register usual express app
         this.app.use(bodyParser.json());
+        //expose public directory as static files
         this.app.use("/",express.static(path.join(__dirname, 'public')));
-        this.app.listen(this.http_port, () => console.log('Listening on '+this.http_port));
-        //register events for SSE
-        this.uiEventBus = new UiBus('/events', this.app, (tabId) => {
-            return this.components;
-        });
+        //start http server
+        this.httpServer = this.app.listen(this.http_port, () => console.log('Listening on '+this.http_port));
+        //register web socket at /events
+        this.wsServer = new WebSocket.Server({server: this.httpServer, path: "/events"});
+        //register event bus with web sockets
+        this.uiEventBus = new UiBus(this.wsServer, (tabId) => this.components);
 
-        //serve UI components from model
+        //serve UI components from internal in-memory model (event sourced)
         this.app.get("/ui/:component/*", (req, res) => {
             let component = req.params.component;
             let path = req.path.substring(("/ui/"+component).length+1);
@@ -83,17 +101,21 @@ class Main {
             console.log("Path:"+path);
             let c = this.ui[component];
             if (c) {
-                for (let f of c) {
+                for (let f of c.files) {
                     if (f.name === path) {
                         if (f.name.endsWith(".js")) {
                             res.type('application/javascript')
+                        } else if (f.name.endsWith(".css")) {
+                            res.type("text/css");
+                        } else if (f.name.endsWith(".html")) {
+                            res.type("text/html");
                         }
                         res.send(f.content);
                         return;
                     }
                 }
             }
-            res.status(404).send("not found");
+            res.status(404).send("Component ["+path+"] not found");
         });
     }
 }

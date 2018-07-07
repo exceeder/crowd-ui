@@ -16,12 +16,12 @@
     <li class="nav-item"><a class="nav-link" href="example2.html">Example 2</a></li>
   </ul>
 </header>
-<div class="container-fluid" id="app" :key="revision">
+<div class="container-fluid" id="app">
   <div class="cards">
-    <template v-for="slot in slots">
+    <template v-for="slotName in registeredSlots">
       <div>
-        <span>{{slot}} {{revision}}</span>
-        <component v-bind:is="slot"></component>
+        <span>{{slotName}}</span>
+        <component v-bind:is="slotName"></component>
       </div>
     </template>
   </div>
