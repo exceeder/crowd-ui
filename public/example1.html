@@ -46,8 +46,8 @@ redisClient.quit();
   </textarea></pre>
 
   <h3>How to publish a full component to the UI</h3>
-  <p>Code below is an example how to create web UI component the same way, by sending a message to a topic "main.ui".
-    Essentially, it publishes the code of a vue.js component in 'module.js' to the topic. If there is a
+  <p>Code below is an example how to create a web UI component the same way, by sending a message to a topic "main.ui".
+    Essentially, it publishes the code of a vue.js component from file 'module.js' to the topic. If there is a
     server (subscriber) listening to it, this component will be integrated into the web page.
   </p>
   <h5>module.js</h5>
@@ -66,9 +66,9 @@ export default {
     }
 }</textarea></pre>
 
-  And this node application would publish it to show on the UI.
+  And this node application would publish it to show on the UI, similar to "Hello, World" above, but now with files.
   <h5>push.js</h5>
-  <pre><textarea style="height:25em;">
+  <pre><textarea style="height:20em;">
 const fs = require('fs');
 const redis = require('redis');
 const redisClient = redis.createClient(6379, 'localhost'); //replace with real hostname
@@ -76,10 +76,7 @@ const redisClient = redis.createClient(6379, 'localhost'); //replace with real h
 let ui = {
     component: "othere",
     files: [
-      {
-          name: 'module.js',
-          content: fs.readFileSync("module.js","utf8")
-      }
+      { name: 'module.js', content: fs.readFileSync("module.js","utf8") }
     ]
 };
 
@@ -87,7 +84,7 @@ redisClient.publish("main.ui",JSON.stringify(ui));
 redisClient.quit();
   </textarea></pre>
 
-  Run it with <code>node push.js</code>
+  Run it via <code>node push.js</code>
 </div>
 
 </body>

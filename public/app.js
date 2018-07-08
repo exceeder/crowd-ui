@@ -4,9 +4,10 @@ import EventBus from './event-bus.js';
 const tabId = Math.random().toString(36).substr(2,7);
 
 // initialize UI slots to be lazily accessible
+// backend server is transparent to these names. In a real web app these will be like: "nav", "main", "footer" etc.
 const slotNames = ["escal", "othere", "creas", "varelse", "trusion", "intar", "clevel", "rement", "eping"];
 
-//preapre all slot names to be loadable components
+//preapre all slot names to be lazily loadable components
 let componentLazyImport = Object.assign(...slotNames.map( name => ({[name]: () => import('./ui/'+name+'/module.js')}) ));
 
 //Vue main app responsible for handling reactive slots in the UI
@@ -40,7 +41,7 @@ new Vue({
                 }
             };
 
-            //register event bridge from UI to the server
+            //register event bridge from UI to the server for each slot and for the main app events
             for (let slot of slotNames) {
                 EventBus.$on('server.'+slot,  (payLoad) => ws.send( JSON.stringify({slot:slot, data:payLoad}) ));
             }
@@ -57,12 +58,14 @@ new Vue({
                    }
                 });
             } else {
-                if (modelDto.style) {
-                    this.onStyleUpdateFromServer([modelDto.style]);
-                } else {
-                    this.registeredSlots = modelDto.components;
+                //a small hack for sever-side updates from main app
+               if (modelDto.components && modelDto.styles) {
+                    // this is executed during initial page load or reload
+                    this.registeredSlots = modelDto.components.filter(s => slotNames.includes(s));
                     this.onStyleUpdateFromServer(modelDto.styles);
-                }
+                } else if (modelDto.style) { //someone pushed new style.css
+                   this.onStyleUpdateFromServer([modelDto.style]);
+               }
             }
         },
 
@@ -85,8 +88,10 @@ new Vue({
         onStyleUpdateFromServer(components) {
             if (components.length === 0) return;
             let style = '';
-            for (let c of components)
-                style += "@import url(ui/"+c+"/style.css);";
+            for (let c of components) {
+                if (!slotNames.includes(c)) continue;
+                style += "@import url(ui/" + c + "/style.css);";
+            }
             let sheet = document.createElement('style');
             sheet.innerHTML = style;
             document.body.appendChild(sheet);

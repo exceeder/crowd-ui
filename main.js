@@ -85,10 +85,14 @@ class Main {
         this.redisClientModel.subscribe("main.model");
         this.redisClientModel.on("message", (channel, message) => {
             console.log("Message '" + message + "' on channel '" + channel + "' arrived!");
-            let data = JSON.parse(message);
-            //data be like { component: "[slot name]",  data: {path: 'users.list', value: ['John','Rob']} }
-            //notify UI we got new model data
-            UiBus.bus().emit('model', '', data);
+            try {
+                let data = JSON.parse(message);
+                //data be like { component: "[slot name]",  data: {path: 'users.list', value: ['John','Rob']} }
+                //notify UI we got new model data
+                UiBus.bus().emit('model', '', data);
+            } catch (e) {
+                console.log("Invalid message received ",message);
+            }
         });
     }
 
