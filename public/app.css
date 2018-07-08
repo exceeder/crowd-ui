@@ -40,3 +40,13 @@
     height: 40vh;
     overflow: hidden;
 }
+
+.slot-wrapper {
+    padding: 1em;
+}
+.slot-header {
+    background: #5a6268;
+    color: #efefef;
+    text-align: center;
+    margin-bottom:1em;
+}

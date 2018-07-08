@@ -1,3 +1,5 @@
+import EventBus from './event-bus.js';
+
 // give this tab unique id to be able to target single browser tab with messages
 const tabId = Math.random().toString(36).substr(2,7);
 
@@ -6,8 +8,6 @@ const slotNames = ["escal", "othere", "creas", "varelse", "trusion", "intar", "c
 
 //preapre all slot names to be loadable components
 let componentLazyImport = Object.assign(...slotNames.map( name => ({[name]: () => import('./ui/'+name+'/module.js')}) ));
-
-const EventBus = new Vue();
 
 //Vue main app responsible for handling reactive slots in the UI
 new Vue({
@@ -38,7 +38,6 @@ new Vue({
                     case 'component': this.onComponentUpdateFromServer(data.value); break;
                     case 'model': this.onModelUpdateFromServer(data.value); break;
                 }
-                console.log(JSON.stringify(data));
             };
 
             //register event bridge from UI to the server
@@ -58,20 +57,39 @@ new Vue({
                    }
                 });
             } else {
-                this.registeredSlots = modelDto;
+                if (modelDto.style) {
+                    this.onStyleUpdateFromServer([modelDto.style]);
+                } else {
+                    this.registeredSlots = modelDto.components;
+                    this.onStyleUpdateFromServer(modelDto.styles);
+                }
             }
         },
 
         //called when UI component update is received from server
         onComponentUpdateFromServer(componentDto) {
-            let existing = this.registeredSlots.includes(componentDto.component);
-            if (!existing) {
+            if (!this.registeredSlots.includes(componentDto.component)) {
                 this.registeredSlots.push(componentDto.component); //causes reactive re-render of app
                 this.componentRegistry[componentDto.component] = componentDto;
-            } else if (!existing.version || existing.version !== componentDto.version) {
-                //since components are not easily removable, we reload the ui, but try to make it less often
-                document.location.reload(true);
+            } else {
+                let existing = this.componentRegistry[componentDto.component];
+                if (!existing) {
+                    this.componentRegistry[componentDto.component] = componentDto;
+                } else if (!existing.version || existing.version !== componentDto.version) {
+                    //since components are not easily removable, we reload the ui, but try to make it less often
+                    document.location.reload(true);
+                }
             }
+        },
+
+        onStyleUpdateFromServer(components) {
+            if (components.length === 0) return;
+            let style = '';
+            for (let c of components)
+                style += "@import url(ui/"+c+"/style.css);";
+            let sheet = document.createElement('style');
+            sheet.innerHTML = style;
+            document.body.appendChild(sheet);
         }
     }
 });

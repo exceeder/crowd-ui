@@ -20,7 +20,7 @@
   <div class="cards">
     <template v-for="slotName in registeredSlots">
       <div>
-        <span>{{slotName}}</span>
+        <div class="slot-header">{{slotName}}</div>
         <component v-bind:is="slotName"></component>
       </div>
     </template>

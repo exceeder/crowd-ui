@@ -2,7 +2,6 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const WebSocket = require('ws');
-const properties = require ("properties");
 const redis = require('redis');
 const UiBus = require('./ui-bus');
 
@@ -16,14 +15,27 @@ class Main {
         this.http_port = process.env.HTTP_PORT || process.argv[2] || 3001;
         this.app = express(this.http_port);
         this.components = [];
+        this.styles = [];
         this.ui = {};
         this.initRedisUiBus();
         this.initRedisDataBus();
+        this.initRedisInboundBus();
         this.createShutdownHook();
         this.initExpress();
     }
 
     // ---------- MESSAGING ----------------
+    initRedisInboundBus() {
+        let pub = redis.createClient(redisPort, redisHost);
+        this.redisClientInbound = pub;
+        UiBus.bus().on("inbound", (msg) => {
+            pub.publish("main.updates."+msg.slot,JSON.stringify(msg.data));
+        });
+        let numsub = (topic) => new Promise((resolve, reject) => pub.pubsub('NUMSUB', topic, (err,res) => err ? reject(err) : resolve(res[1])));
+        numsub("main.ui").then(r => console.log("Subscribers on main.ui channel: "+r));
+        numsub("main.model").then(r => console.log("Subscribers on main.model channel: "+r));
+    }
+
     initRedisUiBus() {
         this.redisClientUI = redis.createClient(redisPort, redisHost);
         this.redisClientUI.subscribe("main.ui");
@@ -48,8 +60,19 @@ class Main {
                         }`
                 }]
             }
-            this.ui[c.component].version++;
+            if (c.version) {
+                this.ui[c.component].version = c.version;
+            } else {
+                this.ui[c.component].version++;
+            }
             this.ui[c.component].files = c.files;
+            //if files contain a style sheet, push it
+            for (let f of c.files) {
+                if (f.name === 'style.css' && !this.styles.includes(c.component)) {
+                    this.styles.push(c.component);
+                    UiBus.bus().emit('model', '', { style: c.component });
+                }
+            }
 
             //notify UI we got new component
             //todo only send if newer version
@@ -75,6 +98,7 @@ class Main {
             console.log("\n...gracefully shutting down ");
             this.redisClientUI.quit();
             this.redisClientModel.quit();
+            this.redisClientInbound.quit();
             process.exit(0);
         };
         process.on('SIGTERM', shutdownHook);
@@ -91,7 +115,10 @@ class Main {
         //register web socket at /events
         this.wsServer = new WebSocket.Server({server: this.httpServer, path: "/events"});
         //register event bus with web sockets
-        this.uiEventBus = new UiBus(this.wsServer, (tabId) => this.components);
+        this.uiEventBus = new UiBus(this.wsServer, (tabId) => ({ //send this data with new connection
+            components: this.components,
+            styles: this.styles
+        }));
 
         //serve UI components from internal in-memory model (event sourced)
         this.app.get("/ui/:component/*", (req, res) => {
