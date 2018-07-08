@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const WebSocket = require('ws');
 const redis = require('redis');
 const UiBus = require('./ui-bus');
+const Exchange = require("./exchange/exchange");
 
 const redisHost = '127.0.0.1';
 const redisPort = 6379;
@@ -22,6 +23,7 @@ class Main {
         this.initRedisInboundBus();
         this.createShutdownHook();
         this.initExpress();
+        this.exchange = new Exchange();
     }
 
     // ---------- MESSAGING ----------------
@@ -100,6 +102,7 @@ class Main {
         // ensure clean shutdown with closing of all server sockets on kill / Ctrl+C
         let shutdownHook = () => {
             console.log("\n...gracefully shutting down ");
+            this.exchange.shutdown();
             this.redisClientUI.quit();
             this.redisClientModel.quit();
             this.redisClientInbound.quit();
