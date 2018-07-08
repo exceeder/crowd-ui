@@ -33,11 +33,19 @@ to push a simple module to the UI.
 
 Redis event topics to cause UI to update:
 * "main.ui" to push Vue components; message is a JSON string of an object
-```
+```javascript
 { component: "[slot name]",  files: [ {name: "module.js", content: "[file content]"}, ...] }
 ```                                      
 * "main.model" to push updates to the model of each component, e.g.
-```
+```javascript
 { component: "[slot name]",  data: {path: 'users', value: ['John','Rob']} }
 ```                                      
-* "main.updates.(slot name)" subscribe and listen to updates from the UI - TODO
+* "main.updates.(slot name)" subscribe and listen to updates from the UI, e.g.
+```javascript
+let balance = 0;
+
+subscribe("main.updates.[slot name]", (msg) => {
+    balance += msg.amountToAdd;
+    publish("main.model", { component: '[slot name]',  data: {path: 'balance', value: balance} });
+});
+```
