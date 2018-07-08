@@ -36,6 +36,11 @@ Redis event topics to cause UI to update:
 ```javascript
 { component: "[slot name]",  files: [ {name: "module.js", content: "[file content]"}, ...] }
 ```                                      
+if you need custom css for your component set, css file has to have a name `style.css`, e.g.
+```javascript
+{name: "style.css", content: ".my-class { background:#777; }"}
+```
+
 * "main.model" to push updates to the model of each component, e.g.
 ```javascript
 { component: "[slot name]",  data: {path: 'users', value: ['John','Rob']} }
