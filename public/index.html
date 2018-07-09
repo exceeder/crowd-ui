@@ -8,23 +8,26 @@
   <script src="vue.js"></script>
 </head>
 <body>
+<div id="app">
 <header class="navbar navbar-expand navbar-dark" style="background: #333;">
-  <a class="navbar-brand" href="/">Reactive webapp</a>
+  <a class="navbar-brand" href="/">CrowdUI</a>
   <ul class="navbar-nav mr-auto">
     <li class="nav-item"><a class="nav-link" href="intro.html">Intro</a></li>
     <li class="nav-item"><a class="nav-link" href="example1.html">Example 1</a></li>
     <li class="nav-item"><a class="nav-link" href="example2.html">Example 2</a></li>
   </ul>
+  <login></login>
 </header>
-<div class="container-fluid" id="app">
+<div class="container-fluid">
   <div class="cards">
     <template v-for="slotName in registeredSlots">
       <div>
-        <div class="slot-header">{{slotName}}</div>
+        <div class="slot-header">{{slotName}} <a href="#invest" v-if="login" v-on:click="invest(slotName)">invest</a></div>
         <component v-bind:is="slotName"></component>
       </div>
     </template>
   </div>
+</div>
 </div>
 <script type="module" src="app.js"></script>
 </body>

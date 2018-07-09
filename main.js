@@ -18,6 +18,8 @@ class Main {
         this.components = [];
         this.styles = [];
         this.ui = {};
+        this.users = {};
+        this.sessions = {};
         this.initRedisUiBus();
         this.initRedisDataBus();
         this.initRedisInboundBus();
@@ -54,13 +56,7 @@ class Main {
                 this.ui[c.component] = c;
             }
             if (c.html) {
-                c.files = [ {name: "module.js",
-                    content:
-                        `export default { 
-                             template: '<span v-html="rawHtml"></span>',
-                             data() { return { rawHtml: ${JSON.stringify(c.html)} } }
-                        }`
-                }]
+                c.files = this.wrapAsDefaultComponent(c.html);
             }
             if (c.version) {
                 this.ui[c.component].version = c.version;
@@ -80,6 +76,51 @@ class Main {
             //todo only send if newer version
             UiBus.bus().emit('component', '', {version:this.ui[c.component].version, component:c.component} );
         });
+        UiBus.bus().on("inbound-main", (tabId, msg) => {
+            //probably should be call-back in main.js
+            if (msg.data.login) {
+                this.login(tabId, msg.data.login);
+            } else if (msg.data.invest) {
+                this.invest(tabId,  msg.data.user, msg.data.slot, msg.data.invest);
+            }
+        });
+    }
+
+    wrapAsDefaultComponent(html) {
+        return [{
+            name: "module.js",
+            content:
+                `export default { 
+                             template: '<span v-html="rawHtml"></span>',
+                             data() { return { rawHtml: ${JSON.stringify(html)} } }
+                        }`
+        }];
+    }
+
+    login(tabId, login) {
+        this.sessions[tabId] = {
+            user: login,
+            authorized: true,
+            created: new Date()
+        };
+        if (!this.users[login]) {
+            this.users[login] = {
+                balance: 10000,
+                created: new Date()
+            }
+        }
+        UiBus.bus().emit('model', tabId, { component: 'login', data: { path:'balance', value: this.users[login].balance } });
+    }
+
+    invest(tabId, user, slot, amount) {
+        if (this.users[user] && this.users[user].balance > amount) {
+            this.users[user].balance -= amount;
+            this.exchange.invest(slot, amount);
+            UiBus.bus().emit('model', tabId, {
+                component: 'login',
+                data: {path: 'balance', value: this.users[user].balance}
+            });
+        }
     }
 
     initRedisDataBus() {

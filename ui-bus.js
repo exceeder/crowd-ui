@@ -57,7 +57,11 @@ class UiBus {
         ws.on('message', (data) => {
             console.log("==> WS: " + data);
             let msg = JSON.parse(data);
-            UiBus.bus().emit('inbound', msg);
+            if (msg.slot === 'main') {
+               UiBus.bus().emit("inbound-main", tabId, msg);
+            } else {
+               UiBus.bus().emit('inbound', msg);
+            }
         });
         ws.on('error', (err) => {
             console.log("!==> WS: " + err);

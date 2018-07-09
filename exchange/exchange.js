@@ -198,6 +198,14 @@ class Exchange {
         if (this.bidInterval) clearInterval(this.bidInterval);
         for(let c of clients) c.quit();
     }
+
+    //to allow players to invest
+    // todo also needs dividends, users need to be in exchange as players
+    invest(slot, amount) {
+        try {
+            this.companies[slot].balance += amount;
+        } catch (e) {}
+    }
 }
 
 module.exports = Exchange;

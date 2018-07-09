@@ -1,8 +1,12 @@
 #app {
-    margin: 1em 0;
+    margin: 0;
 }
 
+.navbar-nav {
+    font-size: 0.9em; white-space: nowrap;
+}
 .cards {
+    margin-top: 1em;
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: auto;
@@ -50,6 +54,9 @@
     color: #efefef;
     text-align: center;
     margin-bottom:1em;
+}
+.slot-header a {
+    float:right; padding-right: 1em; color:#fff;
 }
 
 .sparkline-wrap {

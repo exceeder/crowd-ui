@@ -1,5 +1,5 @@
 import EventBus from './event-bus.js';
-
+import Login from './login.js';
 // give this tab unique id to be able to target single browser tab with messages
 const tabId = Math.random().toString(36).substr(2,7);
 
@@ -9,19 +9,23 @@ const slotNames = ["escal", "othere", "creas", "varelse", "trusion", "intar", "c
 
 //preapre all slot names to be lazily loadable components
 let componentLazyImport = Object.assign(...slotNames.map( name => ({[name]: () => import('./ui/'+name+'/module.js')}) ));
+componentLazyImport['login'] = Login;
 
 //Vue main app responsible for handling reactive slots in the UI
 new Vue({
     el: '#app',
     data: {
        registeredSlots: [],
-       componentRegistry: {}
+       componentRegistry: {},
+       login: false
     },
 
     components: componentLazyImport,
 
     created() {
         this.setupStream();
+        EventBus.$on('login', (user) => this.login = user);
+        EventBus.$on('logout', () => this.login = null);
     },
 
     methods: {
@@ -95,6 +99,10 @@ new Vue({
             let sheet = document.createElement('style');
             sheet.innerHTML = style;
             document.body.appendChild(sheet);
+        },
+
+        invest(slot) {
+            EventBus.$emit(`server.main`, { invest: 100, slot: slot, user: this.login });
         }
     }
 });
