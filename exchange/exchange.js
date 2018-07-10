@@ -35,6 +35,7 @@ class Exchange {
         }; //market data
         this.companies = {}; //registered companies
         this.bids = {}; //current round's bids per slot
+        this.users = {}; //actual playes receiving dividends
         this.initTopics();
         this.launchMarketplace();
     }
@@ -67,6 +68,7 @@ class Exchange {
     completeRound() {
         this.runAuction();
         this.sellInventories();
+        this.payDividends();
     }
 
     runAuction() {
@@ -109,6 +111,36 @@ class Exchange {
                 this.audit(ticker,"Sold "+sold+" units at "+sellingPrice);
             }
         }
+    }
+
+    payDividends() {
+        //usually, dividends are paid $0.20 per share per quarter or similar
+        //let's assume invested amount represents shares
+        //company distributes in dividends 10% of everything it owns
+        //proportionally to invested amounts with each turn
+        //so, for each company we create
+
+        //for each company, calculate distribution per user for each investment, pay dividends
+        Object.values(this.companies).forEach(company => {
+            let payments = [];
+            let totalInvested = 0;
+            let toDistribute = Math.floor(company.balance*0.1);
+            if (toDistribute === 0) return;
+            Object.values(this.users).forEach(user => {
+                Object.values(user.investments).forEach(inv => {
+                    if (inv.slot === company.slot && inv.amount > 0) {
+                        payments.push({user: user, amount:inv.amount});
+                        totalInvested += inv.amount;
+                    }
+                })
+            });
+            if (payments.length > 0) {
+                company.balance -= toDistribute;
+            }
+            for (let p of payments) {
+                p.user.cash += p.amount * toDistribute / totalInvested;
+            }
+        });
     }
 
     processRegistration(entry) {  //{ slot: 'superhero', name: 'Big Corp Ltd.', reqId:10 }
@@ -175,6 +207,10 @@ class Exchange {
             return;
         }
         //validate bid signature
+        if (!this.companies[bid.slot]) {
+            this.audit(bid.slot, "You are not registered, please, re-register");
+            return;
+        }
         let goodSignature = this.md5(this.market.offerId+":"+this.companies[bid.slot].key);
         if (goodSignature !== bid.signed) {
             this.audit(bid.slot, "Invalid bid, bad signature");
@@ -199,12 +235,45 @@ class Exchange {
         for(let c of clients) c.quit();
     }
 
-    //to allow players to invest
-    // todo also needs dividends, users need to be in exchange as players
-    invest(slot, amount) {
+    //allows players to invest
+    invest(user, slot, amount) {
         try {
-            this.companies[slot].balance += amount;
-        } catch (e) {}
+            if (this.users[user] && this.users[user].cash > amount) {
+                let u = this.users[user];
+                u.cash -= amount;
+                //ensure investment is registered with user
+                let inv = u.investments[slot];
+                if (!inv) {
+                    inv = { slot: slot, amount: 0 };
+                    u.investments[slot] = inv;
+                }
+                //increase invesment amount for the slot
+                inv.amount += amount;
+                //give the money to the company
+                this.companies[slot].balance += amount;
+            }
+            return true;
+        } catch (e) { console.log("Investment failed:",e); }
+        return false;
+    }
+
+    //ensure player registered
+    ensureUser(login) {
+        if (!this.users[login]) {
+            this.users[login] = {
+                balance()  {
+                    let invested = Object.values(this.investments).map(i => i.amount).reduce((a, b) => a+b,0);
+                    return {total:this.cash + invested, cash: this.cash, invested: invested};
+                },
+                cash: 10000,
+                investments: {}, // { slot: 'superhero', amount: 100 }
+                created: new Date()
+            }
+        }
+    }
+
+    getUserBalance(login) {
+        return this.users[login].balance();
     }
 }
 

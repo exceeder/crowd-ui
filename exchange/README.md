@@ -18,3 +18,7 @@ every 10 seconds
   only one bid is accepted, if multiple bids arrive from the same corp for the same offer, latest wins.
 5. Subscribe to `exchange.balances.superhero` to receive your balances after each round, 
 in form `{ slot: 'superhero', units:0, bought: 5, price: 40, balance: 10050 }`
+6. When players login, they can invest. Usually, and dividends are paid e.g. $0.20 per share per quarter. Here,
+game assumes invested amount represents shares, and registered company distributes in dividends 10% of everything 
+it owns, proportionally to invested amounts, with each turn.
+                                                

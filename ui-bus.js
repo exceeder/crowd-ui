@@ -68,6 +68,7 @@ class UiBus {
         });
         ws.on('close', (e) => {
             ws.isAlive = false;
+            UiBus.bus().emit("inbound-main", tabId, 'closed');
             console.log('ws close [%s] - %s', remoteAddr, e);
             for (let i = 0; i < connections.length; i++) {
                 let c = connections[i];

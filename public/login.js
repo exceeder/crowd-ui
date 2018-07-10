@@ -9,14 +9,18 @@ export default {
       <input class="form-control form-control-sm" type="text" name="login" placeholder="login" v-model="loginText"/>
     </form>
     <div v-if="!showLogin" class="navbar-nav text-white">
-      <span class="nav-item nav-link">{{login}}: \${{balance}} </span>
+      <span class="nav-item nav-link">{{login}} <b>\${{balance.total}}</b> cash: \${{balance.cash}} stocks: \${{balance.invested}}</span>
       <a class="nav-link" href="#logout" title="logout" v-on:click="handleLogout">logout</a>
     </div>
   </div>
     `,
     data() {
         return {
-            balance: 0,
+            balance: {
+                total: 0,
+                cash: 0,
+                invested: 0
+            },
             loginText: '',
             login: '',
             showLogin: false
@@ -35,8 +39,10 @@ export default {
     },
     methods: {
         handleLogin() {
+            let text = this.loginText.trim().toLowerCase();
+            if (text.length < 3 || text.length>16) return;
             this.showLogin = false;
-            this.login = this.loginText;
+            this.login = text;
             EventBus.$emit(`server.main`, { login: this.login });
             EventBus.$emit(`login`, this.login);
             localStorage.setItem('login', this.login);

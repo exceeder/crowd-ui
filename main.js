@@ -18,7 +18,6 @@ class Main {
         this.components = [];
         this.styles = [];
         this.ui = {};
-        this.users = {};
         this.sessions = {};
         this.initRedisUiBus();
         this.initRedisDataBus();
@@ -44,46 +43,53 @@ class Main {
         this.redisClientUI = redis.createClient(redisPort, redisHost);
         this.redisClientUI.subscribe("main.ui");
         this.redisClientUI.on("message", (channel, message) => {
-            //todo harden this code for invalid messages
-            //console.log("Message '" + message + "' on channel '" + channel + "' arrived!");
-            let c = JSON.parse(message);
-            //c be like
-            // { component: "[slot name]",  html: "html to display" } or
-            // { component: "[slot name]",  files: [ {name: "module.js", content: "[file content]"}, ...] } or
-            if (!this.ui[c.component]) {
-                c.version = 0;
-                this.components.push(c.component);
-                this.ui[c.component] = c;
-            }
-            if (c.html) {
-                c.files = this.wrapAsDefaultComponent(c.html);
-            }
-            if (c.version) {
-                this.ui[c.component].version = c.version;
-            } else {
-                this.ui[c.component].version++;
-            }
-            this.ui[c.component].files = c.files;
-            //if files contain a style sheet, push it
-            for (let f of c.files) {
-                if (f.name === 'style.css' && !this.styles.includes(c.component)) {
-                    this.styles.push(c.component);
-                    UiBus.bus().emit('model', '', { style: c.component });
+            try {
+                //todo harden this code for invalid messages
+                //console.log("Message '" + message + "' on channel '" + channel + "' arrived!");
+                let c = JSON.parse(message);
+                //c be like
+                // { component: "[slot name]",  html: "html to display" } or
+                // { component: "[slot name]",  files: [ {name: "module.js", content: "[file content]"}, ...] } or
+                if (!this.ui[c.component]) {
+                    c.version = 0;
+                    this.components.push(c.component);
+                    this.ui[c.component] = c;
                 }
-            }
-
-            //notify UI we got new component
-            //todo only send if newer version
-            UiBus.bus().emit('component', '', {version:this.ui[c.component].version, component:c.component} );
+                if (c.html) {
+                    c.files = this.wrapAsDefaultComponent(c.html);
+                }
+                if (c.version) {
+                    this.ui[c.component].version = c.version;
+                } else {
+                    this.ui[c.component].version++;
+                }
+                this.ui[c.component].files = c.files;
+                //if files contain a style sheet, push it separately
+                for (let f of c.files) {
+                    if (f.name === 'style.css' && !this.styles.includes(c.component)) {
+                        this.styles.push(c.component);
+                        UiBus.bus().emit('model', '', {style: c.component});
+                    }
+                }
+                //notify UI we got new component
+                UiBus.bus().emit('component', '', {version: this.ui[c.component].version, component: c.component});
+            } catch (e) { console.log("Error on UI message:",e); }
         });
         UiBus.bus().on("inbound-main", (tabId, msg) => {
-            //probably should be call-back in main.js
-            if (msg.data.login) {
+            if (msg === 'closed') {
+                delete this.sessions[tabId];
+            } else if (msg.data.login) {
                 this.login(tabId, msg.data.login);
             } else if (msg.data.invest) {
                 this.invest(tabId,  msg.data.user, msg.data.slot, msg.data.invest);
             }
         });
+        //update balances for logged in users
+        setInterval(() => {
+            Object.values(this.sessions).forEach(s => {
+                UiBus.bus().emit('model', s.tabId, { component: 'login', data: { path:'balance', value: this.exchange.getUserBalance(s.user) } });
+            });
+        },10000);
     }
 
     wrapAsDefaultComponent(html) {
@@ -100,25 +106,19 @@ class Main {
     login(tabId, login) {
         this.sessions[tabId] = {
             user: login,
+            tabId: tabId,
             authorized: true,
             created: new Date()
         };
-        if (!this.users[login]) {
-            this.users[login] = {
-                balance: 10000,
-                created: new Date()
-            }
-        }
-        UiBus.bus().emit('model', tabId, { component: 'login', data: { path:'balance', value: this.users[login].balance } });
+        this.exchange.ensureUser(login);
+        UiBus.bus().emit('model', tabId, { component: 'login', data: { path:'balance', value: this.exchange.getUserBalance(login) } });
     }
 
     invest(tabId, user, slot, amount) {
-        if (this.users[user] && this.users[user].balance > amount) {
-            this.users[user].balance -= amount;
-            this.exchange.invest(slot, amount);
+        if (this.exchange.invest(user, slot, amount)) {
             UiBus.bus().emit('model', tabId, {
                 component: 'login',
-                data: {path: 'balance', value: this.users[user].balance}
+                data: {path: 'balance', value: this.exchange.getUserBalance(user) }
             });
         }
     }
@@ -163,10 +163,12 @@ class Main {
         //register web socket at /events
         this.wsServer = new WebSocket.Server({server: this.httpServer, path: "/events"});
         //register event bus with web sockets
-        this.uiEventBus = new UiBus(this.wsServer, (tabId) => ({ //send this data with new connection
-            components: this.components,
-            styles: this.styles
-        }));
+        this.uiEventBus = new UiBus(this.wsServer, (tabId) => {
+            return { //send this data with new connection / refresh to fill UI with elements
+                components: this.components,
+                    styles: this.styles
+            }
+        });
 
         //serve UI components from internal in-memory model (event sourced)
         this.app.get("/ui/:component/*", (req, res) => {
