@@ -2,7 +2,7 @@ const redis = require('redis');
 let crypto = require('crypto');
 
 //global settings
-const SLOT = "varelse";
+const SLOT = "hulk";
 
 //redis convenience methods, functional style
 let clients = []; //client registry

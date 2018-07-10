@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>UI Crowd</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="bootstrap.min.css"/>
+  <link rel="stylesheet" href="app.css"/>
+  <style>
+    textarea {
+      width:100%;
+      height:auto;
+    }
+
+    .microlight {
+      color:#bfefef;
+    }
+
+    .slide {
+      background: #4e555b; width:1080px; height:700px; color:white;
+      padding: 0 1em;
+      margin: 0 auto;
+    }
+
+    .slide > h3:first-child { padding-top: 1em; }
+
+    .slide a {
+      color: #bfbfef;
+    }
+
+    .slide td {
+      vertical-align: top;
+    }
+
+  </style>
+</head>
+<body>
+<header class="navbar navbar-expand navbar-dark" style="background: #333;">
+  <a class="navbar-brand" href="/">CrowdUI</a>
+  <ul class="navbar-nav mr-auto">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item"><a class="nav-link" href="intro.html">Intro</a></li>
+      <li class="nav-item"><a class="nav-link" href="slides.html">Slides</a></li>
+    </ul>
+  </ul>
+</header>
+<div class="container-fluid" id="app" style="max-width:80em; margin:1em auto">
+  <div id="slides" class="carousel slide" data-ride="carousel" data-interval="false">
+    <ol class="carousel-indicators">
+      <li data-target="#slides" data-slide-to="0" class="active"></li>
+      <li data-target="#slides" data-slide-to="1"></li>
+      <li data-target="#slides" data-slide-to="2"></li>
+      <li data-target="#slides" data-slide-to="3"></li>
+    </ol>
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+<!-- slide 1 -->
+        <div class="d-block slide">
+          <h3>1. PREP THE PROJECT</h3>
+<div>
+  On your handouts, you have the WIFI SSID/password and a team handle based on a superhero name.
+  Whenever in these slides you see “superhero”, replace it with your handle.
+  To start, while on WIFI, open <a href="http://beat42/">http://beat42/</a> to see the UI, then run
+  the following in the command line:
+  <pre><code class="microlight">
+    mkdir mycorp
+    cd mycorp
+    npm init
+    npm install redis
+    touch corp.js
+  </code></pre>
+
+  Then open this directory in your IDE and edit corp.js to the following:
+  <pre><code class="microlight">
+    const redis = require('redis');
+    const redisClient = redis.createClient(6379, 'beat42');
+    let ui = { component: "superhero",
+               html: '&lt;h1&gt;Hello&lt;/h1&gt;&lt;p&gt;World!&lt;/p&gt;'
+             };
+    redisClient.publish("main.ui", JSON.stringify(ui));
+    redisClient.quit();
+    </code></pre>
+    Run `node corp.js` and observe the result in the browser. You can run it many times with different html content.
+ </div>
+        </div>
+      </div>
+<!-- slide 2 -->
+      <div class="carousel-item">
+<h3>2. REAL VUE COMPONENT</h3>
+<table>
+  <tr>
+    <td>
+      <i>BEFORE</i>
+      <div><b>corp.js</b></div>
+      <pre><code class="microlight">
+const redis = require('redis');
+const redisClient = redis.createClient(6379, 'beat42');
+let ui = { component: "superhero",
+           html: '&lt;h1&gt;Hello&lt;/h1&gt;&lt;p&gt;World!&lt;/p&gt;'
+         };
+redisClient.publish("main.ui", JSON.stringify(ui));
+redisClient.quit();
+    </code></pre>
+    </td>
+    <td style="width:2em;"></td>
+    <td>
+      <i>AFTER</i>
+      <div><b>corp.js</b></div>
+      <pre><code class="microlight">
+<span class="text-info">const fs = require('fs');</span>
+const redis = require('redis');
+const redisClient = redis.createClient(6379, 'beat42');
+let ui = {
+    component: "superhero",
+    files: [
+        { name: 'module.js',
+          <span class="text-info">content: fs.readFileSync("module.js","utf8")</span> }
+    ]
+  };
+redisClient.publish("main.ui",JSON.stringify(ui));
+redisClient.quit();
+          </code></pre>
+      With <b>module.js</b> containing
+      <pre><code class="microlight">
+export default {
+    template: `&lt;div&gt;
+     &lt;h3&gt;My Corp&lt;/h3&gt;
+     &lt;p&gt;{{ message }}&lt;/p&gt;
+    &lt;/div&gt;`,
+    data() {
+        return { message: 'I make money' }
+    }
+}
+
+    </code></pre>
+    </td>
+  </tr>
+</table>
+      </div>
+<!-- slide 3 -->
+      <div class="carousel-item">
+        <h3>3. ASYNC UI UPDATES</h3>
+        <div><b>brain.js</b></div>
+<pre><code class="microlight">
+  const redis = require('redis');
+  const redisClient = redis.createClient(6379, 'beat42');
+  <span class="text-info">let update = {
+      component: "superhero",
+      data: {path: 'message', value: 'Tons of money.'}
+    };</span>
+  redisClient.publish(<span class="text-info">"main.model"</span>,JSON.stringify(<span class="text-info">update</span>));
+</code></pre>
+Run it with `node brain.js` after your VUE component from the previous slide is running.
+      </div>
+    </div>
+
+<!-- slide 4 -->
+    <div class="carousel-item">
+      <h3>4. ASYNC MARKET UPDATES</h3>
+      <div><b>brain.js</b> (improved)</div>
+      <pre><code class="microlight">
+  const redis = require('redis');
+  const sub = redis.createClient(6379, 'beat42');
+  const pub = redis.createClient(6379, 'beat42'); //need 2 clients: can't publish after subscribed
+  sub.subscribe(<span class="text-info">"exchange.market"</span>, (arg, channel) => console.log(`Subscribed to ${channel}.`));
+  sub.on("message", (topic, msg) => {
+    let market = JSON.parse(msg);
+    let update = {
+       component: "superhero",
+       data: {path: 'message', value: `Units available: ${market.units} at \$${market.price}.`}
+    };
+    pub.publish(<span class="text-info">"main.model"</span>,JSON.stringify(<span class="text-info">update</span>));
+  });
+</code></pre>
+      Run it with `node brain.js` while your VUE component is still showing in the UI. Note, that market updates every
+      10 seconds.
+    </div>
+  </div>
+
+  </div>
+</div>
+<script src="bootstrap-native-v4.min.js"></script>
+</body>
+</html>

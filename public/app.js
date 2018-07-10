@@ -5,7 +5,7 @@ const tabId = Math.random().toString(36).substr(2,7);
 
 // initialize UI slots to be lazily accessible
 // backend server is transparent to these names. In a real web app these will be like: "nav", "main", "footer" etc.
-const slotNames = ["escal", "othere", "creas", "varelse", "trusion", "intar", "clevel", "rement", "eping"];
+const slotNames = ["hulk", "thor", "loki", "groot", "ultron", "intar", "clevel", "rement", "eping"];
 
 //preapre all slot names to be lazily loadable components
 let componentLazyImport = Object.assign(...slotNames.map( name => ({[name]: () => import('./ui/'+name+'/module.js')}) ));

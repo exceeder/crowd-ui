@@ -32,15 +32,9 @@
   edit push.js as below and you can then update combined UI by running <code>node push.js</code>
   </p>
   <pre><textarea style="height:18em;">
-const fs = require('fs');
 const redis = require('redis');
 const redisClient = redis.createClient(6379, 'localhost'); //replace with real hostname
-
-let ui = {
-    component: "othere",
-    html: '<h1>Hello</h1><p>World!</p>'
-};
-
+let ui = { component: "superhero", html: '<h1>Hello</h1><p>World!</p>' };
 redisClient.publish("main.ui",JSON.stringify(ui));
 redisClient.quit();
   </textarea></pre>

@@ -111,7 +111,7 @@ class Exchange {
         }
     }
 
-    processRegistration(entry) {  //{ slot: 'escal', name: 'Big Corp Ltd.', reqId:10 }
+    processRegistration(entry) {  //{ slot: 'superhero', name: 'Big Corp Ltd.', reqId:10 }
         //validate entry
         if (!entry || !entry.slot || !entry.reqId) {
             console.log("Invalid registration",entry);
@@ -159,7 +159,7 @@ class Exchange {
         return md5sum.digest('hex');
     }
 
-    processBid(bid) { //{ offerId: 'xyz123', slot: 'escal', qty: 5, price: 30, signed: '123abcdef' }
+    processBid(bid) { //{ offerId: 'xyz123', slot: 'superhero', qty: 5, price: 30, signed: '123abcdef' }
         //validate bid
         if (!bid || !bid.slot) {
             console.log("Invalid bid",bid);
