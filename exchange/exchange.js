@@ -87,7 +87,7 @@ class Exchange {
         //process all bids and sell units to companies
         let remainingUnits = this.market.units;
         for (let bid of sortedBids) {
-            let bought = Math.max(bid.qty, remainingUnits);
+            let bought = Math.min(bid.qty, remainingUnits);
             let company =  this.companies[bid.slot];
             if (company.balance < bought * bid.price) {
                 this.audit(bid.slot, "Not enough balance to buy "+bought+" for $"+bid.price);
