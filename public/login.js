@@ -9,7 +9,7 @@ export default {
       <input class="form-control form-control-sm" type="text" name="login" placeholder="login" v-model="loginText"/>
     </form>
     <div v-if="!showLogin" class="navbar-nav text-white">
-      <span class="nav-item nav-link">{{login}} <b>\${{balance.total}}</b> cash: \${{balance.cash}} stocks: \${{balance.invested}}</span>
+      <span class="nav-item nav-link">{{login}} <b>\${{ formatMoney(balance.total) }}</b> cash: \${{ formatMoney(balance.cash) }} stocks: \${{ formatMoney(balance.invested) }}</span>
       <a class="nav-link" href="#logout" title="logout" v-on:click="handleLogout">logout</a>
     </div>
   </div>
@@ -52,6 +52,10 @@ export default {
             localStorage.removeItem('login');
             this.login = '';
             EventBus.$emit(`logout`, {});
+        },
+        formatMoney(value) {
+            let val = (value/1).toFixed(2);
+            return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
     }
 }
