@@ -101,7 +101,7 @@ class Exchange {
         //simplification: for all companies, sell inventory and make profits. Alternative would be to emulate
         //market place for inventory similar to materials marketplace
         let sellingPrice = Math.floor(Math.random() * 50) + 90;
-        const MAX_SELL = 10; //untis
+        const MAX_SELL = 50; //untis
         for (let ticker of this.tickers) {
             let company =  this.companies[ticker];
             let sold = Math.min(company.units, MAX_SELL);
@@ -122,6 +122,7 @@ class Exchange {
 
         //for each company, calculate distribution per user for each investment, pay dividends
         Object.values(this.companies).forEach(company => {
+            if (company.balance <= 10000) return; //do not pay dividends if not a good balance
             let payments = [];
             let totalInvested = 0;
             let toDistribute = Math.floor(company.balance*0.1);
@@ -178,7 +179,7 @@ class Exchange {
     generateMarketPricing() {
         let offer = {
             offerId: Math.random().toString(36).substr(2,8),
-            units: Math.floor(Math.random() * (10.0 * this.tickers.length)) + 10, //10..100 units
+            units: Math.floor(Math.random() * (50.0 * this.tickers.length)) + 10, //10..100 units
             price: Math.floor(Math.random() * 50) + 50  //50..100 prince //todo improve distribution
         };
         this.market = offer;

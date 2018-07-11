@@ -15,70 +15,22 @@
   <a class="navbar-brand" href="/">CrowdUI</a>
   <ul class="navbar-nav mr-auto">
     <li class="nav-item"><a class="nav-link" href="intro.html">Intro</a></li>
-    <li class="nav-item active"><a class="nav-link" href="example1.html">Example 1</a></li>
-    <li class="nav-item"><a class="nav-link" href="example2.html">Example 2</a></li>
+    <li class="nav-item"><a class="nav-link" href="slides.html">Slides</a></li>
+    <li class="nav-item active"><a class="nav-link" href="example1.html">Examples</a></li>
   </ul>
 </header>
 <div class="container-fluid" id="app" style="max-width:60em; margin:1em auto">
 
-  <h3>How to publish HTML to the UI</h3>
-  <p>Code below is a "Hello World" example how to push html to a combined UI reactively only by sending a message to a topic.</p>
-  <p>Before you create this file, create a new directory, and run the following there:
-    <pre>
-  npm init
-  npm install redis
-  touch push.js
-</pre>
-  edit push.js as below and you can then update combined UI by running <code>node push.js</code>
+  <h3>Useful Code snippets</h3>
+  <p>Below is a collection of useful code snippets after you work through the slides</p>
+  <p>Sending data from UI to a Redis listener. In the VueJS module:
   </p>
-  <pre><textarea style="height:18em;">
-const redis = require('redis');
-const redisClient = redis.createClient(6379, 'localhost'); //replace with real hostname
-let ui = { component: "superhero", html: '<h1>Hello</h1><p>World!</p>' };
-redisClient.publish("main.ui",JSON.stringify(ui));
-redisClient.quit();
+  <pre><textarea style="height:5em;">
+import EventBus from '/event-bus.js';
+...
+EventBus.$emit("server.superhero", { myProperty: 42 }); //this will post it on "main.updates.superhero" topic
   </textarea></pre>
-
-  <h3>How to publish a full component to the UI</h3>
-  <p>Code below is an example how to create a web UI component the same way, by sending a message to a topic "main.ui".
-    Essentially, it publishes the code of a vue.js component from file 'module.js' to the topic. If there is a
-    server (subscriber) listening to it, this component will be integrated into the web page.
-  </p>
-  <h5>module.js</h5>
-  <pre><textarea style="height:20em;">
-export default {
-    template: `
-    <div style="margin: 1em; padding:1em;">
-     <h3>Dynamic Component</h3>
-     <p>{{ message }}</p>
-    </div>
-  `,
-    data() {
-        return {
-            message: 'Oh hai from the component'
-        }
-    }
-}</textarea></pre>
-
-  And this node application would publish it to show on the UI, similar to "Hello, World" above, but now with files.
-  <h5>push.js</h5>
-  <pre><textarea style="height:20em;">
-const fs = require('fs');
-const redis = require('redis');
-const redisClient = redis.createClient(6379, 'localhost'); //replace with real hostname
-
-let ui = {
-    component: "othere",
-    files: [
-      { name: 'module.js', content: fs.readFileSync("module.js","utf8") }
-    ]
-};
-
-redisClient.publish("main.ui",JSON.stringify(ui));
-redisClient.quit();
-  </textarea></pre>
-
-  Run it via <code>node push.js</code>
+  More are coming...
 </div>
 
 </body>
