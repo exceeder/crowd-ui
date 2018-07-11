@@ -12,6 +12,7 @@ const MARKET_TOPIC = "exchange.market";
 const BIDS_TOPIC = "exchange.bids";
 const BALANCES_TOPIC = "exchange.balances";
 const LOGS_TOPIC = "exchange.logs";
+const USERS_TOPIC = "exchange.users";
 
 //redis convenience methods, functional style
 let clients = []; //client registry
@@ -63,6 +64,8 @@ class Exchange {
                     units: reg.units,
                     bought: reg.lastSold,
                     price: reg.lastPrice,
+                    productSold: reg.lastProductSold,
+                    productPrice: reg.lastProductPrice,
                     balance: this.companies[ticker].balance
                 });
             }
@@ -72,6 +75,13 @@ class Exchange {
     }
 
     completeRound() {
+        for (let ticker of this.tickers) {
+            let company = this.companies[ticker];
+            company.lastPrice = 0;
+            company.lastSold = 0;
+            company.lastProductPrice = 0;
+            company.lastProductSold = 0;
+        }
         this.runAuction();
         this.sellInventories();
         this.payDividends();
@@ -114,6 +124,8 @@ class Exchange {
             if (sold > 0) {
                 company.balance += sold*sellingPrice;
                 company.units -= sold;
+                company.lastProductPrice = sellingPrice;
+                company.lastProductSold = sold;
                 this.audit(ticker,"Sold "+sold+" units at "+sellingPrice);
             }
         }
@@ -131,7 +143,7 @@ class Exchange {
             if (company.balance <= 10000) return; //do not pay dividends if not a good balance
             let payments = [];
             let totalInvested = 0;
-            let toDistribute = Math.floor(company.balance*0.1);
+            let toDistribute = Math.floor(company.balance*0.01);
             if (toDistribute === 0) return;
             Object.values(this.users).forEach(user => {
                 Object.values(user.investments).forEach(inv => {
@@ -148,6 +160,12 @@ class Exchange {
                 p.user.cash += p.amount * toDistribute / totalInvested;
             }
         });
+        //publish user balances at the end of the round
+        let userData = [];
+        Object.keys(this.users).forEach(login => {
+            userData.push({user:login, balance:this.users[login].balance()});
+        });
+        publish(USERS_TOPIC, userData);
     }
 
     processRegistration(entry) {  //{ slot: 'superhero', name: 'Big Corp Ltd.', reqId:10 }
@@ -170,10 +188,14 @@ class Exchange {
           units: 0,
           lastSold: 0,
           lastPrice: 0,
+          lastProductPrice: 0,
+          lastProductSold: 0,
           key: Math.random().toString(36).substr(2,8)
         };
         this.companies[entry.slot] = reg;
-        this.tickers.push(entry.slot);
+        if (!this.tickers.includes(entry.slot)) {
+            this.tickers.push(entry.slot);
+        }
         //publish success
         setTimeout(() => {
             publish(REGISTRATION_TOPIC + "." + entry.reqId, reg);

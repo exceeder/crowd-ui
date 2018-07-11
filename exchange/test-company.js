@@ -26,6 +26,7 @@ let md5 = (str) => {
 subscribe(`exchange.logs.${SLOT}`, (msg) => console.log("XCHG Log: "+msg.message));
 subscribe(`exchange.balances.${SLOT}`, (msg) => console.log("XCHG Bal: ",msg));
 subscribe("exchange.market", (msg) => console.log("XCHG Mkt: ",msg));
+subscribe("exchange.users", (msg) => console.log("XCHG Users: ",msg));
 
 //register at exchange and run
 let doRegistration = new Promise((resolve) => {
