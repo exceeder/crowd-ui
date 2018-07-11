@@ -23,7 +23,13 @@ const publish = (topic, message) => pubClient.publish(topic, JSON.stringify(mess
 const subscribe = (topic, listener) => {
     let client = createRedisClient();
     client.subscribe(topic, (arg, channel) => console.log(`X subscribed to [${channel}]`));
-    client.on("message", (topic, msg) => listener(JSON.parse(msg)));
+    client.on("message", (topic, msg) => {
+        try {
+            listener(JSON.parse(msg))
+        } catch (e) {
+            console.log("Error processing ",msg, e)
+        }
+    });
 };
 
 class Exchange {
