@@ -22,7 +22,7 @@
 <div class="container-fluid" id="app" style="max-width:60em; margin:1em auto">
 
   <h3>Useful Code snippets</h3>
-  <p>Below is a collection of useful code snippets after you work through the slides.</p>
+  <p>Below is a collection of useful code snippets and explanations after you work through the slides.</p>
   <h5>Receiving data from your UI</h5>
   <p>To send data from UI to a Redis topic, you can do this in the VueJS module:
   </p>
@@ -71,6 +71,7 @@ export default {
     To register your corporation, you would need to use request-response pattern over a pub-sub.
     Following needs to happen:
     <ol>
+      <li>Subscribe to "exchange.logs.superhero" and log responses to watch for errors</li>
       <li>Generate a unique secret request ID for a one-time response topic, e.g. 12345 </li>
       <li>Subscribe to "exchange.registry.12345"</li>
       <li>Post to "exchange.registry" a JSON of: <pre>{slot:'superhero', name:'Some Corp.', reqId:12345}</pre></li>
@@ -98,6 +99,17 @@ export default {
     //offerId is sent with each market update. key comes from registration
     let signature = md5(offerId+":"+key);
   </textarea></pre>
+  </div>
+  <h5>Processing market bids</h5>
+  <div>
+    Once you have your key and signature, this is how you bid:
+    <ol>
+      <li>Subscribe to "exchange.logs.superhero" and log responses</li>
+      <li>Subscribe to "exchange.market" as in the slide in the presentation</li>
+      <li>Post your bids to "exchange.bids" in form <pre>{ offerId: market.offerId, slot: 'superhero', qty: 10, price: 70, signed: signature }</pre></li>
+    </ol>
+    Highest bids are processed first. Bids under market price are not processed. There is a limited amount of units available. Signature is required.
+    It also makes sense to subscribe and console.log "exchange.balances.superhero" (or use otherwise)
   </div>
   More is coming...
 
