@@ -22,15 +22,85 @@
 <div class="container-fluid" id="app" style="max-width:60em; margin:1em auto">
 
   <h3>Useful Code snippets</h3>
-  <p>Below is a collection of useful code snippets after you work through the slides</p>
-  <p>Sending data from UI to a Redis listener. In the VueJS module:
+  <p>Below is a collection of useful code snippets after you work through the slides.</p>
+  <h5>Receiving data from your UI</h5>
+  <p>To send data from UI to a Redis topic, you can do this in the VueJS module:
   </p>
-  <pre><textarea style="height:5em;">
+  <pre><textarea style="height:6em;">
 import EventBus from '/event-bus.js';
 ...
 EventBus.$emit("server.superhero", { myProperty: 42 }); //this will post it on "main.updates.superhero" topic
   </textarea></pre>
-  More are coming...
+
+  <p>You can also bind the above to a Vue UI form, e.g. like this:</p>
+  <pre><textarea style="height:20em;">
+import EventBus from '/event-bus.js';
+export default {
+    template: `
+    ...
+     <!-- reactive in-line form -->
+     <form class="form-inline ml-2" @submit.prevent="handleSubmit">
+        <div class="input-group w-100 d-flex justify-content-between">
+            <input type="text" class="form-control has-error" placeholder="10" v-model="amountToSend">
+            <div class="input-group-append mr-2">
+               <button type="submit" class="btn btn-primary">Send</button>
+            </div>
+          </div>
+      </form>
+      <!-- reactive info box -->
+      <p class="my-info">Current balance: ${{ balance }}</p>
+    ...
+    `,
+    data() {
+        return {
+            amountToSend: '',
+            balance: '0'
+        }
+    },
+    methods: {
+      handleSubmit() {
+          if (isNaN(this.amountToSend)) return;
+          EventBus.$emit("server.superhero", { amountToSend: parseFloat(this.amountToSend) });
+      }
+    }
+  }
+  </textarea></pre>
+
+  <h5>Registering your corporation with the exchange</h5>
+  <div>
+    To register your corporation, you would need to use request-response pattern over a pub-sub.
+    Following needs to happen:
+    <ol>
+      <li>Generate a unique secret request ID for a one-time response topic, e.g. 12345 </li>
+      <li>Subscribe to "exchange.registry.12345"</li>
+      <li>Post to "exchange.registry" a JSON of: <pre>{slot:'superhero', name:'Some Corp.', reqId:12345}</pre></li>
+      <li>Receive on "exchange.registry.12345" a message in form <pre>
+         {
+          slot: 'superhero',
+          name: 'Some Corp.',
+          balance: 10000,
+          units: 0,
+          lastSold: 0,
+          lastPrice: 0,
+          key: 'abc12def'
+        }
+      </pre></li>
+    </ol>
+  Note, that to place bids, you will need a key from the message above, and the signaure looks like this:
+  <pre><textarea style="height:12em;">
+    let crypto = require('crypto');
+    ...
+    let md5 = (str) => {
+        let md5sum = crypto.createHash('md5');
+        md5sum.update(str);
+        return md5sum.digest('hex');
+    };
+    //offerId is sent with each market update. key comes from registration
+    let signature = md5(offerId+":"+key);
+  </textarea></pre>
+  </div>
+  More is coming...
+
 </div>
 
 </body>
