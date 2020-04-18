@@ -14,7 +14,7 @@ const subscribe = (topic, listener) => {
 };
 
 //Take care of UI. Using slot "trusion" for this component, but you can change it.
-const slot = "trusion";
+const slot = "hulk";
 let ui = {
     component: slot,
     version: 1, //increment version to cause updates of UIs

@@ -1,6 +1,6 @@
 import EventBus from '/event-bus.js';
 import Sparkline from '/sparkline.js';
-const slot = '%SLOTNAME%';
+const slot = 'hulk';
 export default {
     template: `
     <div>
